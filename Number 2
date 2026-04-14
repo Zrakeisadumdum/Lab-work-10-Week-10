@@ -1,0 +1,58 @@
+// BankSimulationSync.java
+class BankAccountSync {
+    private int balance = 1000;
+    public synchronized void deposit(int amount) {
+        balance += amount;
+        System.out.println("Deposited " + amount + ", Balance: " + balance);
+    }
+    public synchronized void withdraw(int amount) {
+        if (balance >= amount) {
+            balance -= amount;
+            System.out.println("Withdrawn " + amount + ", Balance: " + balance);
+        } else {
+            System.out.println("Insufficient funds for " + amount);
+        }
+    }
+    public synchronized int getBalance() {
+        return balance;
+    }
+}
+class CustomerSync implements Runnable {
+    private BankAccountSync account;
+    private String action;
+    private int amount;
+    public CustomerSync(BankAccountSync account, String action, int amount) {
+        this.account = account;
+        this.action = action;
+        this.amount = amount;
+    }
+    public void run() {
+        if (action.equals("deposit")) {
+            account.deposit(amount);
+        } else if (action.equals("withdraw")) {
+            account.withdraw(amount);
+        }
+    }
+}
+public class BankSimulationSync {
+    public static void main(String[] args) throws InterruptedException {
+        BankAccountSync account = new BankAccountSync();
+        System.out.println("=== SYNCHRONIZED VERSION ===");
+        System.out.println("Initial Balance: " + account.getBalance());
+        System.out.println("==============================");
+        Thread[] customers = new Thread[3];
+        customers[0] = new Thread(new CustomerSync(account, "deposit", 500));
+        customers[1] = new Thread(new CustomerSync(account, "withdraw", 700));
+        customers[2] = new Thread(new CustomerSync(account, "withdraw", 600));
+        for (Thread t : customers) {
+            t.start();
+        }
+        // Бүх урсгал дуусахыг хүлээх
+        for (Thread t : customers) {
+            t.join();
+        }
+        System.out.println("==============================");
+        System.out.println("Final Balance: " + account.getBalance());
+        System.out.println("Expected: 200 (1000 + 500 - 700 - 600)");
+    }
+}
