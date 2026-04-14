@@ -1,0 +1,63 @@
+// BankSimulationExecutor.java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+class BankAccountExecutor {
+    private int balance = 1000;
+    public synchronized void deposit(int amount) {
+        balance += amount;
+        System.out.println("Deposited " + amount + ", Balance: " + balance);
+    }
+    public synchronized void withdraw(int amount) {
+        if (balance >= amount) {
+            balance -= amount;
+            System.out.println("Withdrawn " + amount + ", Balance: " + balance);
+        } else {
+            System.out.println("Insufficient funds for " + amount + ", Balance: " + balance);
+        }
+    }
+    public synchronized int getBalance() {
+        return balance;
+    }
+}
+class CustomerExecutor implements Runnable {
+    private BankAccountExecutor account;
+    private String action;
+    private int amount;
+    public CustomerExecutor(BankAccountExecutor account, String action, int amount) {
+        this.account = account;
+        this.action = action;
+        this.amount = amount;
+    }
+    public void run() {
+        if (action.equals("deposit")) {
+            account.deposit(amount);
+        } else if (action.equals("withdraw")) {
+            account.withdraw(amount);
+        }
+    }
+}
+public class BankSimulationExecutor {
+    public static void main(String[] args) throws InterruptedException {
+        BankAccountExecutor account = new BankAccountExecutor();
+        System.out.println("=== EXECUTOR SERVICE VERSION (2 threads) ===");
+        System.out.println("Initial Balance: " + account.getBalance());
+        System.out.println("==============================================");
+        // 2 thread бүхий thread pool үүсгэх
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        // Ажлуудыг executor-т оруулах
+        executor.submit(new CustomerExecutor(account, "deposit", 500));
+        executor.submit(new CustomerExecutor(account, "withdraw", 700));
+        executor.submit(new CustomerExecutor(account, "withdraw", 600));
+        // Шинэ ажлууд хүлээн авахаа болих
+        executor.shutdown();
+        // Бүх ажлууд дуусахыг хүлээх (max 10 секунд)
+        if (executor.awaitTermination(10, TimeUnit.SECONDS)) {
+            System.out.println("==============================================");
+            System.out.println("Final Balance: " + account.getBalance());
+            System.out.println("Expected: 200 (1000 + 500 - 700 - 600)");
+        } else {
+            System.out.println("Timeout - not all tasks completed");
+        }
+    }
+}
